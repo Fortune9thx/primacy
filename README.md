@@ -217,7 +217,8 @@ any hash/address associated with Dominion's own deployment.
 `claim`, `claim_refund`, `reclaim_bonds`.
 
 Full signatures: `contracts/Primacy.py`. `UserError` strings are stable,
-lowercase, and frontend-parseable -- see `frontend/src/lib/primacy/errors.ts`.
+lowercase, and frontend-parseable -- see the real frontend's error map,
+`hourglass-insights`' `src/lib/primacy/client.ts` (`ERROR_MESSAGES`).
 
 ## 11. Tests
 
@@ -260,8 +261,17 @@ GenLayer Studio node -- see that script's own header comment.
 
 ## 13. Agent API
 
-Read-only Next.js API routes over `genlayer-js`'s read client (no
-account, no provider -- see `frontend/src/lib/primacy/networks.ts`):
+**Not currently implemented.** An earlier Next.js `frontend/` sketch in
+this repo had a read-only API surface sketched out (below, kept as the
+spec for whoever builds it), but that sketch was removed once the real
+frontend (`Fortune9thx/hourglass-insights`, TanStack Start, not
+Next.js) shipped and superseded it -- it never had this route shape and
+doesn't currently expose one either. Any external agent/script wanting
+read access today should call `genlayer-js`'s read client directly
+against the deployed contract (see §10 above for the view method
+names), the same way the frontend does.
+
+Original spec, read-only, no account/provider:
 
 - `GET /api/health` -- rpc reachability, chain id, contract address, code
   presence, last error.

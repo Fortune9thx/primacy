@@ -27,20 +27,3 @@ jobs:
 
       - name: Run direct-mode tests
         run: python -m pytest tests/direct -q
-
-  frontend:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: "20"
-
-      - name: Install frontend deps
-        working-directory: frontend
-        run: npm install
-
-      - name: Typecheck
-        working-directory: frontend
-        run: npm run typecheck

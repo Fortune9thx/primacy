@@ -4,7 +4,7 @@
 
 | Component | Version |
 |---|---|
-| `genlayer-js` (frontend/deploy) | `2.0.0-rc.1` |
+| `genlayer-js` (deploy scripts; the real frontend, `hourglass-insights`, pins this separately) | `2.0.0-rc.1` |
 | `genlayer` CLI (npm) | `0.40.0-rc.3` |
 | `genlayer-py` | `0.19.0rc2` |
 | `genlayer-test` (gltest) | `0.30.0rc2` |

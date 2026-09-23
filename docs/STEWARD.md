@@ -32,9 +32,9 @@ Attach these when submitting for review:
 
 - [x] Write client binds the wallet's real provider (not `window.ethereum`
   directly) -- the live frontend is `Fortune9thx/hourglass-insights`
-  (`src/lib/primacy/useWallet.ts`/`client.ts`), not this repo's own
-  `frontend/` (an earlier, unused typed-SDK sketch superseded by the
-  real app -- kept here for reference/parity, not deployed).
+  (`src/lib/primacy/useWallet.ts`/`client.ts`). An earlier `frontend/`
+  typed-SDK sketch in this repo was removed once that real app shipped
+  and superseded it -- see CHANGELOG.md.
 - [x] Read client is a memoized singleton with no account/provider --
   same, `hourglass-insights`' `client.ts`.
 - [x] No address-checksum lookup bug -- every TreeMap keyed by a

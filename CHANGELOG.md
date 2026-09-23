@@ -17,8 +17,10 @@
   `docs/audit.md`, `docs/STEWARD.md`.
 - Real frontend shipped and live: `Fortune9thx/hourglass-insights` ->
   https://hourglass-insights.vercel.app, fail-closed with no mock data
-  anywhere (supersedes the `frontend/` typed-SDK sketch in this repo,
-  kept for reference only).
+  anywhere. Removed this repo's own `frontend/` typed-SDK sketch (the
+  real app fully supersedes it, and its stale TypeScript was failing
+  this repo's own CI once published -- deleting unused, broken code
+  instead of patching a sketch nothing depends on).
 - Deploy attempted 2026-09-23, failed on the network side: a real
   transaction (`0x001588db...`) reached FINALIZED but
   FINISHED_WITH_ERROR (`invalid_contract runner malformed`). Bisected

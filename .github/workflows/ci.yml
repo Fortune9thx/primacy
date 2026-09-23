@@ -1,0 +1,46 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  contract:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install pinned toolchain
+        run: |
+          pip install --pre genlayer-test==0.30.0rc2 genvm-linter==0.11.1rc2 genlayer-py==0.19.0rc2 Pillow pytest
+
+      - name: Build deploy bundle
+        run: python contracts/build_bundle.py
+
+      - name: Lint bundled contract
+        run: |
+          PYTHONIOENCODING=utf-8 genvm-lint check contracts/build/Primacy.deploy.py
+
+      - name: Run direct-mode tests
+        run: python -m pytest tests/direct -q
+
+  frontend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install frontend deps
+        working-directory: frontend
+        run: npm install
+
+      - name: Typecheck
+        working-directory: frontend
+        run: npm run typecheck

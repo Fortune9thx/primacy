@@ -1,0 +1,6 @@
+# Pinned RC toolchain -- see docs/architecture.md. Never `latest`.
+genlayer-test==0.30.0rc2
+genvm-linter==0.11.1rc2
+genlayer-py==0.19.0rc2
+Pillow
+pytest

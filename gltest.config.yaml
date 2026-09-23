@@ -1,0 +1,19 @@
+networks:
+  default: studio_devnet
+  # `tests/direct` uses gltest's separate direct-mode pytest plugin
+  # (direct_vm/direct_deploy fixtures) and never actually talks to this
+  # network -- but gltest still validates network config eagerly at
+  # session start whenever this file is present, so `studio_devnet` must
+  # be a valid, resolvable entry even for a pure direct-mode run.
+  studio_devnet:
+    id: 61997
+    url: "https://studio-dev.genlayer.com/api"
+    # accounts intentionally omitted from the committed file -- gltest
+    # eagerly substitutes every ${VAR} in this file at config-load time,
+    # for every network, even ones not selected, so a placeholder here
+    # would break plain `pytest`/`tests/direct` runs whenever
+    # DEPLOYER_PRIVATE_KEY isn't set (i.e. every run except a real live
+    # one). Set DEPLOYER_PRIVATE_KEY in .env and add it back locally
+    # (or override via GLTEST_STUDIO_DEVNET_ACCOUNTS / an uncommitted
+    # gltest.config.local.yaml) only when actually running
+    # `gltest tests/integration -v` -- see tests/integration/README.md.

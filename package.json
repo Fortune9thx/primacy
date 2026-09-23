@@ -1,0 +1,9 @@
+{
+  "name": "primacy-deploy",
+  "private": true,
+  "type": "module",
+  "description": "Dependency root for deploy/deploy.mjs. The actual protocol has no JS runtime dependency -- this exists only so the deploy script can import genlayer-js.",
+  "dependencies": {
+    "genlayer-js": "2.0.0-rc.1"
+  }
+}

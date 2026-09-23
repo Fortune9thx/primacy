@@ -5,11 +5,14 @@ comparable, 24/7 instruments race each completed UTC hour, and validators
 independently fetch three locked venues to agree on which one had the
 highest return.
 
-- **Live demo**: _placeholder -- filled in after the frontend (Lovable)
-  ships against this contract's ABI._
-- **Contract address (Studio Dev, chain 61997)**: _placeholder -- filled
-  in by `deploy/deploy.mjs`, see `deploy/deployments.json` after a real
-  deploy._
+- **Live demo**: https://hourglass-insights.vercel.app (frontend repo:
+  [Fortune9thx/hourglass-insights](https://github.com/Fortune9thx/hourglass-insights))
+  -- live, fail-closed, honestly empty until a contract address exists
+  (no mock data anywhere in that app).
+- **Contract address (Studio Dev, chain 61997)**: not yet deployed --
+  see [`docs/STATUS.md`](docs/STATUS.md) for why (a currently-open
+  upstream platform bug, not a gap in this contract), filled in by
+  `deploy/deploy.mjs` / `deploy/deployments.json` once resolved.
 
 ## 1. The decision GenLayer owns
 
@@ -234,6 +237,13 @@ live figure, since it changes whenever the contract does).
 
 ## 12. Deploy runbook (Studio Dev)
 
+**Do not run this against Studio Dev right now** -- see
+[`docs/STATUS.md`](docs/STATUS.md): the network's own runner-loading
+path currently rejects any contract over ~305 bytes, confirmed against
+GenLayer's own official example, not just this one. Check that
+`docs/STATUS.md`'s free re-check snippet prints "FIXED" before spending
+real GEN on a deploy attempt.
+
 ```bash
 cp .env.example .env        # fill in DEPLOYER_PRIVATE_KEY and TREASURY_ADDRESS
 python contracts/build_bundle.py
@@ -243,6 +253,10 @@ node deploy/deploy.mjs
 Writes the deployed address into `deploy/deployments.json`. See
 `deploy/deploy.mjs`'s own header comment for the exact `genlayer-js`
 `studioDevnet` chain preset usage and fee-estimation flow.
+
+To prove the full lifecycle in the meantime without touching the broken
+network at all, run `deploy/local_walkthrough.mjs` against a local
+GenLayer Studio node -- see that script's own header comment.
 
 ## 13. Agent API
 

@@ -15,6 +15,20 @@
 - Deploy script (`deploy/deploy.mjs`) targeting Studio Dev (chain 61997).
 - Full steward documentation set: `README.md`, `docs/architecture.md`,
   `docs/audit.md`, `docs/STEWARD.md`.
+- Real frontend shipped and live: `Fortune9thx/hourglass-insights` ->
+  https://hourglass-insights.vercel.app, fail-closed with no mock data
+  anywhere (supersedes the `frontend/` typed-SDK sketch in this repo,
+  kept for reference only).
+- Deploy attempted 2026-09-23, failed on the network side: a real
+  transaction (`0x001588db...`) reached FINALIZED but
+  FINISHED_WITH_ERROR (`invalid_contract runner malformed`). Bisected
+  the root cause precisely: Studio Dev's runner-loading path currently
+  rejects any contract over ~305 bytes, confirmed against GenLayer's own
+  official example contract too -- not a bug in this bundle. Full
+  evidence in `docs/STATUS.md` (new).
+- `deploy/local_walkthrough.mjs` (new): full create -> bet -> settle ->
+  claim lifecycle script against a local GenLayer Studio node, so the
+  protocol can be proven end to end without touching the broken network.
 - Not yet deployed to a live network -- `deploy/deployments.json` is
-  still empty; README's live demo/contract address fields are
-  placeholders pending a real deploy.
+  still empty; do not attempt another Studio Dev deploy until
+  `docs/STATUS.md`'s re-check confirms the platform bug is fixed.

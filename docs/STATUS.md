@@ -129,6 +129,39 @@ evidence for that same issue.
   create → bet → settle → claim against a local GenLayer Studio
   instance.
 
+## Update 2026-09-24: re-checked, still broken, error signature changed
+
+Re-ran the free `gen_getContractSchemaForCode` probe against live Studio
+Dev. Three fresh tests, single well-spaced requests (the endpoint rate-
+limits this method to 30/min under an `x-ratelimit-bucket: standard`
+header, confirmed):
+
+| Payload | Size | Depends hash | Result |
+|---|---|---|---|
+| Minimal `Tiny` contract (one `u256` field, one view method) | 270 bytes | Primacy's pinned hash | **FAIL** -- `invalid_contract runner absent` |
+| Primacy's real bundle | 51,336 bytes (base64) | Primacy's pinned hash | **FAIL** -- `invalid_contract runner absent` |
+| `genlayerlabs/genlayer-studio`'s own `examples/contracts/llm_erc20.py`, fetched fresh from `main` today | 2,839 bytes | GenLayer's own pinned hash | **FAIL** -- `invalid_contract runner absent` |
+
+Two things changed since the original bisection above, and one thing
+didn't:
+
+- **The error message changed**: `invalid_contract runner malformed` ->
+  `invalid_contract runner absent`. This reads as the runner-loading
+  path itself now failing differently (a lookup miss, not a parse
+  failure on a too-large payload) -- a different symptom of the same
+  unresolved issue, not evidence of a partial fix.
+- **The size boundary no longer reproduces**: a 270-byte contract, well
+  under the previously-isolated 302-byte OK boundary, now fails too.
+  Nothing here suggests picking a smaller size would help.
+- **What didn't change: GenLayer's own unmodified example still fails**,
+  using GenLayer's own pinned hash, fetched fresh today. That is still
+  the cleanest, most conservative bar for "still broken," and it still
+  fails. The standing rule holds: **do not spend GEN on Studio Dev.**
+
+This is logged as a live update rather than a rewrite of the section
+above so the original bisection evidence stays intact and re-checkable
+on its own terms.
+
 ## Re-checking this later
 
 ```js

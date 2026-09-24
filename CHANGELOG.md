@@ -34,3 +34,17 @@
 - Not yet deployed to a live network -- `deploy/deployments.json` is
   still empty; do not attempt another Studio Dev deploy until
   `docs/STATUS.md`'s re-check confirms the platform bug is fixed.
+- Re-checked Studio Dev 2026-09-24: still broken, confirmed fresh
+  against GenLayer's own unmodified example contract; the error
+  signature changed (`runner malformed` -> `runner absent`) but the
+  platform is not deployable. Logged as an update in `docs/STATUS.md`
+  rather than a rewrite, so the original bisection evidence stays
+  intact.
+- Added `tests/direct/test_lifecycle_scenario.py` and
+  `docs/TESTED_FLOW.md` (new): a single narrated test that runs a full
+  realistic session -- one keeper opens an hour, three independent
+  bettors take different sides, a second keeper settles through the
+  real consensus path, the winner and both bond-payers claim -- against
+  the exact bundled deploy artifact via gltest's real GenVM direct-mode
+  execution, with a captured, reproducible transcript. 97/97 tests
+  passing, `genvm-lint check` clean, both re-run fresh for this.

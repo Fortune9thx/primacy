@@ -27,6 +27,13 @@ Attach these when submitting for review:
    against a local GenLayer Studio node, exercising real
    `gl.vm.run_nondet` consensus against the real locked venues, with no
    dependency on Studio Dev at all.
+6. **A real, reproducible test transcript, right now** --
+   `docs/TESTED_FLOW.md`: a full create -> bet x3 -> settle -> claim ->
+   reclaim_bonds session, run against the exact bundled deploy artifact
+   through gltest's real GenVM direct-mode execution (not a mock of the
+   contract's logic), with every state transition read back from the
+   contract's own return values. Re-run it yourself with
+   `python -m pytest tests/direct/test_lifecycle_scenario.py -s -v`.
 
 ## Pre-submission checklist (self-audit against this account's calibrated rejection patterns)
 

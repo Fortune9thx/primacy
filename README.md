@@ -7,12 +7,9 @@ highest return.
 
 - **Live demo**: https://hourglass-insights.vercel.app (frontend repo:
   [Fortune9thx/hourglass-insights](https://github.com/Fortune9thx/hourglass-insights))
-  -- live, fail-closed, honestly empty until a contract address exists
-  (no mock data anywhere in that app).
-- **Contract address (Studio Dev, chain 61997)**: not yet deployed --
-  see [`docs/STATUS.md`](docs/STATUS.md) for why (a currently-open
-  upstream platform bug, not a gap in this contract), filled in by
-  `deploy/deploy.mjs` / `deploy/deployments.json` once resolved.
+- **Contract address (Studio Dev, chain 61997)**:
+  [`0xFA741ee8aAD114147613b5Ac50B4225aba5fF52F`](https://explorer-studio-dev.genlayer.com/address/0xFA741ee8aAD114147613b5Ac50B4225aba5fF52F)
+  -- live, see [`docs/STATUS.md`](docs/STATUS.md) for the deploy record.
 
 ## 1. The decision GenLayer owns
 
@@ -158,7 +155,7 @@ comparator a validator runs:
   one fixed constant. See `docs/architecture.md` for why this pattern
   was chosen over an IC-to-IC transfer.
 
-## 8. Why not an EVM oracle / why not Dominion
+## 8. Why not an EVM oracle
 
 An EVM price-feed oracle (Chainlink-style) reports a single agreed value
 that consumers trust by construction -- it does not itself decide
@@ -169,23 +166,27 @@ kind of judgment GenVM's Equivalence Principle is for: multiple
 independent parties fetching real data and reaching consensus on a
 *derived* conclusion, not a single trusted number.
 
-This project is a from-scratch build against jason4185/dominion as prior
-art, not a fork or a reskin. Dominion's real reference value was its
-publicly documented review findings, both incorporated directly here:
+Two design decisions follow directly from that, both deliberate and
+both load-bearing:
 
-- **Dominion HIGH #1** (payouts via IC-to-IC `emit_transfer`, not
-  reliably deliverable to a real EOA the way this project's pattern is):
-  fixed by making every payout self-service and caller-derived (§7) --
-  no method here ever resolves a payout target from stored state other
-  than the fixed treasury constant.
-- **Dominion's leftover medium finding** (a favorable leader result
-  against one witness set treated as immune to a different, equally
-  valid witness set reaching a different conclusion): fixed by requiring
-  the *derived* evidence object -- not the raw witness data -- to be what
-  validators reconcile on, with an explicit tolerance and abstain-aware
-  2-of-3 rule (§6), so two honest fetches with different raw JSON but the
-  same real-world answer still settle correctly instead of spuriously
-  disagreeing.
+- **Every payout is self-service and caller-derived, never push-based.**
+  A contract that resolves a payout target from stored state and pushes
+  value to it risks that target being another Intelligent Contract
+  address rather than a plain EOA -- a transfer that can silently fail
+  to deliver with no rescue path. Every payout method here (`claim`,
+  `claim_refund`, `reclaim_bonds`) instead resolves its recipient to
+  `gl.message.sender_address` -- the caller pulls their own funds, so
+  there is nothing to misdeliver. See §7 and `docs/architecture.md`.
+- **Consensus runs on the derived evidence object, never on raw witness
+  bytes.** A naive raw-comparison consensus mechanism can spuriously
+  disagree when the leader and a validator fetch genuinely slightly
+  different raw bytes (a few seconds apart, or a venue's own
+  float-formatting jitter) even though both sides agree on the real
+  outcome. Validators here reconcile on the *derived* `status`/`winner`/
+  per-venue-vote/bps-within-tolerance object (§6), with an explicit
+  tolerance and abstain-aware 2-of-3 rule, so two honest fetches with
+  different raw JSON but the same real-world answer still settle
+  correctly instead of spuriously disagreeing.
 
 ## 9. Network (Studio Dev only)
 
@@ -201,8 +202,7 @@ publicly documented review findings, both incorporated directly here:
 in one session is not guaranteed to exist later. Never hardcode a market
 id or address from a prior session in tests, docs, or the frontend.
 
-This project never targets studionet (chain 61999), Bradbury (4221), or
-any hash/address associated with Dominion's own deployment.
+This project never targets studionet (chain 61999) or Bradbury (4221).
 
 ## 10. Methods
 
@@ -238,12 +238,9 @@ live figure, since it changes whenever the contract does).
 
 ## 12. Deploy runbook (Studio Dev)
 
-**Do not run this against Studio Dev right now** -- see
-[`docs/STATUS.md`](docs/STATUS.md): the network's own runner-loading
-path currently rejects any contract over ~305 bytes, confirmed against
-GenLayer's own official example, not just this one. Check that
-`docs/STATUS.md`'s free re-check snippet prints "FIXED" before spending
-real GEN on a deploy attempt.
+Already deployed -- see `docs/STATUS.md` for the live address and
+transaction. To redeploy (a new instance, not an upgrade -- Primacy has
+no upgrade path by design):
 
 ```bash
 cp .env.example .env        # fill in DEPLOYER_PRIVATE_KEY and TREASURY_ADDRESS
@@ -255,9 +252,10 @@ Writes the deployed address into `deploy/deployments.json`. See
 `deploy/deploy.mjs`'s own header comment for the exact `genlayer-js`
 `studioDevnet` chain preset usage and fee-estimation flow.
 
-To prove the full lifecycle in the meantime without touching the broken
-network at all, run `deploy/local_walkthrough.mjs` against a local
-GenLayer Studio node -- see that script's own header comment.
+To prove the full lifecycle end to end without touching the live
+network at all, `deploy/local_walkthrough.mjs` runs the same create →
+bet → settle → claim sequence against a local GenLayer Studio node --
+see that script's own header comment.
 
 ## 13. Agent API
 

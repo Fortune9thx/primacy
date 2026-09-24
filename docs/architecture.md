@@ -134,10 +134,9 @@ live-verified in production use."
 
 ## Why payouts are self-service (caller-derived), not push-based
 
-The build brief itself flags "Dominion HIGH #1" (payouts via IC-to-IC
-`emit_transfer`, not reliably reaching a real EOA) as a bug to avoid, and
-separately says "use the Studio-safe transfer path for paying the
-caller." This account's own accumulated GenLayer memory
+The build brief calls for the Studio-safe transfer path for paying the
+caller, avoiding payouts via IC-to-IC `emit_transfer`, which does not
+reliably reach a real EOA. This account's own accumulated GenLayer memory
 (`genlayer-js-api`, `compax-v2-progress`) documents `_Recipient(Address(x)).emit_transfer(value=...)`
 as the real, GenLayer-team-supplied, confirmed-working pattern for a
 contract paying a real EOA -- and separately documents that the specific

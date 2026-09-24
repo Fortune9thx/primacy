@@ -98,8 +98,7 @@ vector.
 **Risk**: the leader and a validator fetch genuinely slightly different
 raw bytes (a few seconds apart, or a venue's own float-formatting jitter)
 and a naive raw-comparison consensus mechanism spuriously disagrees on an
-outcome both sides actually agree with in substance -- this is Dominion's
-own documented leftover medium finding.
+outcome both sides actually agree with in substance.
 
 **Mitigation**: see README §6 and `docs/architecture.md`'s "Why
 `gl.vm.run_nondet`" section -- consensus is on derived `status`/`winner`/

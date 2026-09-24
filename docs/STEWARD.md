@@ -1,10 +1,8 @@
 # Steward evidence packet
 
-**Status as of this writing: not yet deployed.** Studio Dev's own
-runner-loading path is currently broken for any contract over ~305
-bytes -- confirmed against GenLayer's own official example, not just
-Primacy's bundle. Full evidence: `docs/STATUS.md`. Do not spend GEN
-attempting another Studio Dev deploy until that status changes.
+**Status as of this writing: live.** Deployed to GenLayer Studio Dev
+(chain 61997) at `0xFA741ee8aAD114147613b5Ac50B4225aba5fF52F`. Full
+deploy record and a real post-deploy read: `docs/STATUS.md`.
 
 Attach these when submitting for review:
 
@@ -12,22 +10,19 @@ Attach these when submitting for review:
    sole-authored commits (no AI co-author line),
    README/LICENSE/CHANGELOG/SECURITY.md + `docs/` present.
 2. **Live app** -- https://hourglass-insights.vercel.app -- live and
-   fully wired, honestly showing a "Contract not deployed" state (no
-   mock data anywhere; see that repo's `src/lib/primacy/client.ts`).
-3. **Explorer link (deployed contract)** -- _not yet available -- see
-   `docs/STATUS.md`. Will be filled in by `deploy/deploy.mjs` ->
-   `deploy/deployments.json` (format
-   `https://explorer-studio-dev.genlayer.com/address/<address>`) once
-   Studio Dev's runner-loading bug is fixed and a real deploy succeeds._
+   wired to the real deployed contract (no mock data anywhere; see
+   that repo's `src/lib/primacy/client.ts`).
+3. **Explorer link (deployed contract)** --
+   https://explorer-studio-dev.genlayer.com/address/0xFA741ee8aAD114147613b5Ac50B4225aba5fF52F
 4. **This README** -- `README.md` at the repo root, the primary steward
    brief (decision GenLayer owns, constitution, economics, network,
    methods, known limits, refused scope).
-5. **Full-lifecycle proof without touching the broken network** --
+5. **Full-lifecycle proof, two ways** --
    `deploy/local_walkthrough.mjs` runs create -> bet -> settle -> claim
-   against a local GenLayer Studio node, exercising real
-   `gl.vm.run_nondet` consensus against the real locked venues, with no
-   dependency on Studio Dev at all.
-6. **A real, reproducible test transcript, right now** --
+   against a local GenLayer Studio node (real `gl.vm.run_nondet`
+   consensus against the real locked venues), and the same sequence can
+   now be run live against the deployed contract above.
+6. **A real, reproducible test transcript** --
    `docs/TESTED_FLOW.md`: a full create -> bet x3 -> settle -> claim ->
    reclaim_bonds session, run against the exact bundled deploy artifact
    through gltest's real GenVM direct-mode execution (not a mock of the
@@ -96,11 +91,8 @@ submitting:_
 > 24/7 instruments (USDT-M index returns, never equities) race each
 > completed UTC hour, and GenVM validators independently fetch three
 > locked venues to reach 2-of-3 consensus on the winner before any GEN
-> moves. Built from scratch against jason4185/dominion as prior-art
-> critique only (not forked) -- both of Dominion's documented findings
-> (an IC-to-IC payout reliability bug, and a favorable-single-witness
-> immunity gap) are fixed here by construction: every payout is
-> self-service/caller-derived, and consensus is on derived, tolerance-
-> bounded fields rather than raw witness bytes or a single agreeing
-> venue. Targets GenLayer Studio Dev (chain 61997) only -- see
-> docs/STATUS.md for current deploy status before submitting.
+> moves. Every payout is self-service/caller-derived, and consensus
+> is on derived, tolerance-bounded fields rather than raw witness
+> bytes or a single agreeing venue. Targets GenLayer Studio Dev
+> (chain 61997) only -- see docs/STATUS.md for current deploy status
+> before submitting.

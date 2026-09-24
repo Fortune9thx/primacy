@@ -1,3 +1,11 @@
 {
-  "deployments": []
+  "deployments": [
+    {
+      "address": "0xFA741ee8aAD114147613b5Ac50B4225aba5fF52F",
+      "txHash": "0x04d21c7400f0721eb992426a0eb205a3e4363e42a28ebb991e55827c97e98b35",
+      "chainId": 61997,
+      "treasury": "0xC6E6d3b2acCaECeCeB40Ad4bD3dF123DDCB4e537",
+      "deployedAt": "2026-09-24T11:14:27.000Z"
+    }
+  ]
 }

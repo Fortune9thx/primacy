@@ -48,3 +48,19 @@
   the exact bundled deploy artifact via gltest's real GenVM direct-mode
   execution, with a captured, reproducible transcript. 97/97 tests
   passing, `genvm-lint check` clean, both re-run fresh for this.
+- **Deployed live to Studio Dev (chain 61997)**, 2026-09-24:
+  `0xFA741ee8aAD114147613b5Ac50B4225aba5fF52F`
+  (`0x04d21c74...c97e98b35`, `FINALIZED`/`FINISHED_WITH_RETURN`), verified
+  with a real `get_constitution` read immediately after. The earlier
+  "Studio Dev is broken above ~305 bytes" conclusion was wrong -- root
+  cause was a comment block `contracts/build_bundle.py` inserted between
+  the Depends header and the contract's real content, which GenVM's
+  runner-comment parser on live Studio Dev rejects. Found by locating an
+  unrelated, larger, already-deployed contract on the network sharing
+  the identical Depends hash, diffing its source against ours, and
+  confirming the fix with both a free probe and a real paid deploy
+  before committing to it. `docs/STATUS.md` keeps the full prior
+  diagnosis, marked superseded, alongside the correction and the real
+  deploy record. Also fixed a real bug in `deploy/deploy.mjs`'s own
+  address-parsing (`tx.txDataDecoded.contractAddress` is never populated
+  on live responses; the real field is `tx.data.contract_address`).

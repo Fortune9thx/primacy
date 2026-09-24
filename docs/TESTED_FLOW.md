@@ -7,11 +7,14 @@ consensus path, and every payout/bond being claimed -- runs correctly
 against the exact contract artifact that would ship to chain
 (`contracts/build/Primacy.deploy.py`).
 
-**What this document is not:** a live network transaction. Studio Dev is
-confirmed broken for any contract deploy right now -- see `docs/STATUS.md`,
-re-checked as recently as today. There is no transaction hash or block
-explorer link in this document because none exists yet. Nothing below
-should be read as a deploy.
+**What this document is not:** a live network transaction. This is
+`gltest` direct-mode GenVM execution of the bundled artifact, run
+independent of any network. It predates, and is independent of,
+Primacy's real deployment -- see `docs/STATUS.md` for the live
+contract address and transaction hash. Both forms of evidence are kept:
+this document proves the contract logic itself, in a fast,
+reproducible, no-network-dependency way; `docs/STATUS.md` proves it's
+actually live.
 
 ## What actually ran
 
@@ -114,22 +117,14 @@ python contracts/build_bundle.py && genvm-lint check contracts/build/Primacy.dep
   Methods: 22 (16 view, 6 write)
 ```
 
-## Why this, and not a Studio Dev deploy
+## Why this document still exists now that Primacy is deployed
 
-Because there currently is no working Studio Dev to deploy to --
-re-verified today against GenLayer's own unmodified example contract,
-not just Primacy's (see `docs/STATUS.md`'s 2026-09-24 update). Faking a
-transaction hash or a populated board to make this look more "live"
-than it is would be exactly the kind of thing this project has refused
-to do everywhere else (`hourglass-insights`' fail-closed client, its
-honest empty-state banner, this repo's own refusal to spend GEN against
-a confirmed-broken network). This document is the honest version of
-"prove it works": real contract code, real GenVM execution, a
-real, readable, reproducible transcript -- with no invented network
-evidence standing in for a deploy that hasn't happened yet.
-
-When Studio Dev's runner-loading bug is fixed (bar: GenLayer's own
-`examples/contracts/llm_erc20.py` deploys cleanly through the Studio Dev
-UI), the exact same lifecycle -- `deploy/local_walkthrough.mjs` -- can be
-re-run against the live network with a real transaction hash for every
-step, and this document will be updated to link them.
+This transcript predates the real deployment (see `docs/STATUS.md` for
+the earlier, wrong "Studio Dev is broken" diagnosis and its correction)
+and was written when there was nothing live to point to. It's kept
+because it's still useful on its own terms: `gltest` direct-mode
+execution is fast, fully reproducible, and needs no network -- a
+cleaner way to verify the contract's write-method logic and payout math
+in CI or locally than re-running against a live chain every time.
+`deploy/local_walkthrough.mjs` can also be run against the deployed
+contract directly for a live, on-chain version of the same sequence.

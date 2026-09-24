@@ -82,7 +82,17 @@ async function main() {
   });
 
   const tx = receipt ?? (await client.getTransaction({ hash }));
-  const address = tx?.txDataDecoded?.contractAddress;
+  // The real transaction shape carries the deployed address at
+  // data.contract_address, not txDataDecoded.contractAddress (that field
+  // is consistently undefined on live Studio Dev, confirmed against a
+  // real successful deploy -- txDataDecoded itself appears unpopulated on
+  // this network/SDK version). Check both for forward/backward safety.
+  const address = tx?.data?.contract_address ?? tx?.txDataDecoded?.contractAddress;
+  if (tx?.txExecutionResultName && tx.txExecutionResultName !== "FINISHED_WITH_RETURN") {
+    console.error(`Deploy did not succeed: txExecutionResultName=${tx.txExecutionResultName}`);
+    console.error("Raw transaction:", JSON.stringify(tx, null, 2));
+    process.exit(1);
+  }
   if (!address) {
     console.error("Could not read the deployed contract address from the transaction result.");
     console.error("Raw transaction:", JSON.stringify(tx, null, 2));

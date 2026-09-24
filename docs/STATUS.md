@@ -1,11 +1,95 @@
 # Deploy status
 
-**Not deployed. Studio Dev is currently unable to load ANY contract larger
-than ~305 bytes.** This is a platform bug, confirmed precisely below --
-not fixable by shrinking, rewriting, or changing the header of Primacy's
-own bundle.
+**Live on GenLayer Studio Dev (chain 61997).**
 
-## The evidence
+| | |
+|---|---|
+| Contract address | `0xFA741ee8aAD114147613b5Ac50B4225aba5fF52F` |
+| Deploy tx | `0x04d21c7400f0721eb992426a0eb205a3e4363e42a28ebb991e55827c97e98b35` |
+| Status | `FINALIZED` / `FINISHED_WITH_RETURN` |
+| Explorer | https://explorer-studio-dev.genlayer.com/address/0xFA741ee8aAD114147613b5Ac50B4225aba5fF52F |
+| Deployed | 2026-09-24 |
+
+Verified live with a real read immediately after deploy:
+
+```
+$ genlayer call 0xFA741ee8aAD114147613b5Ac50B4225aba5fF52F get_constitution
+{
+  bps_tol: 2,
+  create_bond_wei: '2000000000000000000',
+  fee_bps: 200,
+  ...
+  lanes: { CRYPTO_EQUITY_PROXIES: [ 'MSTR', 'COIN', 'HOOD' ], MAJORS: [ 'BTC', 'ETH', 'SOL' ] },
+  treasury: '0xC6E6d3b2acCaECeCeB40Ad4bD3dF123DDCB4e537',
+  venues: [ 'binance', 'bitget', 'gate' ]
+}
+```
+
+## The real root cause (and correcting an earlier wrong conclusion)
+
+Every deploy attempt before this one failed with `invalid_contract
+runner malformed` / `invalid_contract runner absent`. That was real --
+every probe and transaction quoted in the history below genuinely
+happened and genuinely failed. But the conclusion drawn from it, stated
+plainly in this file for most of this build's life, was **wrong**:
+"Studio Dev is broken for any contract over ~305 bytes." It is not.
+
+The actual cause was in `contracts/build_bundle.py`: it inserted a
+5-line comment block (`# AUTO-GENERATED...`, `# Source:...`, a
+`# --- begin ... ---` marker) directly between the `# { "Depends": ...
+}` header and the rest of the file. GenVM's runner-comment parser on
+live Studio Dev (`v0.3.0-rc7`) cannot handle that -- it needs real
+content immediately after the Depends line. `genvm-lint` (a different,
+local implementation) never caught this because it doesn't reproduce
+that specific parsing behavior.
+
+This was found, not guessed: another Intelligent Contract, unrelated to
+this project, was found live on Studio Dev via the explorer (real
+recent transactions, real method calls, real `FINISHED_WITH_RETURN`
+results) using the **identical** Depends hash, at a **larger** size
+(51,805 bytes vs. Primacy's 38,500). That single fact ruled out the
+hash and ruled out raw size as the cause, which the entire diagnosis
+below had converged on. Fetching that contract's actual source via
+`genlayer code <address>` showed the real difference: its Depends
+header is followed immediately by its module docstring, with no
+comment block in between. Stripping the same block from Primacy's
+bundle and testing (first for free via schema-check, then for real
+via a paid `deployContract()` call) confirmed it immediately --
+`FINISHED_WITH_RETURN`, both leader and validator `SUCCESS`.
+
+**Fix**: `contracts/build_bundle.py` no longer emits anything between
+the header line and the real content. See its own comment for the
+exact constraint.
+
+The correction matters more than the mistake: the original diagnosis
+mistook a bug in this project's own tooling for a platform-wide GenLayer
+outage, including treating GenLayer's own example contract's failure
+(real, and still worth investigating separately -- see below) as
+confirmation rather than a second, independent data point that needed
+its own scrutiny. The fix was to go find a *counter-example* -- a
+contract that actually works right now -- rather than continuing to
+accumulate more failures of the same kind.
+
+## What is still true from the earlier diagnosis, and what isn't
+
+**Still true**: every quoted probe and transaction below genuinely
+returned the errors shown. `genlayerlabs/genlayer-studio#1757`
+(GenLayer's own filed issue) is real, and GenLayer's own
+`examples/contracts/llm_erc20.py` did fail identically every time it
+was tested this session, using GenLayer's own pinned hash. That
+contract may have the exact same leading-comment problem, or a
+different one -- it was not re-tested with a stripped header, since
+the point of that test was Primacy's own bundle, not GenLayer's example.
+That remains a real, open, separately worth-filing observation about
+GenLayer's own example contract, not evidence about Studio Dev as a
+whole.
+
+**Not true, and retracted**: the "~305-byte platform-wide ceiling,"
+the claim that "no meaningful contract fits under the threshold," and
+the instruction not to attempt further deploys. All three are
+superseded by the live deployment above.
+
+## Full prior diagnosis (kept for the record, superseded by the above)
 
 ### Attempt A -- smallest official-style contract, same Depends hash
 
@@ -19,7 +103,7 @@ Result: OK
 {"ctor":{"params":[],"kwparams":{}},"methods":{"get_greeting":{"params":[],"kwparams":{},"readonly":true,"ret":"string"}}}
 ```
 
-### Attempt B -- Primacy's real bundled contract, unmodified
+### Attempt B -- Primacy's real bundled contract, unmodified (with the since-removed comment block)
 
 `contracts/build/Primacy.deploy.py` (38,500 bytes, same Depends hash,
 same call):
@@ -30,14 +114,15 @@ Result: FAILED
 genvm_log: runner load -> runner: chain:0x0...:d:q805cc3mbb7k055ay5hek4sg80r2s85yyftpzrpq7g50hy1cc45g, size: 38500
 ```
 
-A + B alone would read as "our bundle" per the standard diagnostic (A
-works, B fails). It is not -- see below.
+At the time, A + B read as "our bundle" per the standard diagnostic (A
+works, B fails) -- correctly, as it turned out, though the size-padding
+follow-up below pointed away from that conclusion and toward a wrong
+one instead.
 
-### Follow-up: isolating size as the actual variable
+### Follow-up: isolating size as the (wrongly blamed) variable
 
-Before concluding "our bundle," the same minimal `Hello` contract's
-*content* was held fixed and only padded with a trailing comment to
-various sizes, using the identical Depends hash throughout:
+The same minimal `Hello` contract's *content* was held fixed and only
+padded with a trailing comment to various sizes:
 
 | Padded size (bytes) | Result |
 |---|---|
@@ -46,135 +131,56 @@ various sizes, using the identical Depends hash throughout:
 | 400, 512, 600, 768, 900, 1000 | FAIL |
 | 4096, 8192, 12288, 16384, 20480, 24576, 28672, 32768, 38305 | FAIL |
 
-The exact boundary was bisected: **302 bytes succeeds, 306 bytes fails,
-every size tested above that also fails, all the way up to Primacy's
-real 38,500-byte bundle.** The failing `genvm_log` is byte-for-byte
-identical in shape across every failing size, including the same
-internal runner id (`q805cc3mbb7k055ay5hek4sg80r2s85yyftpzrpq7g50hy1cc45g`)
-GenLayer's own filed issue reports.
+In hindsight this padding was appended as a trailing comment on an
+already-complete minimal contract, not inserted between the header and
+the content -- a different structural position than Primacy's actual
+bug. The correlation with size was real but coincidental to how the
+test was constructed, not evidence that size itself was the cause.
 
-### Confirmation: GenLayer's own official example fails too
+### GenLayer's own official example also failed, every time it was tested
 
 Fetched `genlayerlabs/genlayer-studio`'s own live
-`examples/contracts/llm_erc20.py` (2,839 bytes, using **its own pinned
-Depends hash**, `py-genlayer:9b8kjyda2ycxyq4ea6g4yfpnydxhd52gqba5rb8dw7krkh5mn9p0`
--- not Primacy's) and submitted it unmodified to the same free
-`gen_getContractSchemaForCode` call:
+`examples/contracts/llm_erc20.py`, using its own pinned Depends hash
+`py-genlayer:9b8kjyda2ycxyq4ea6g4yfpnydxhd52gqba5rb8dw7krkh5mn9p0`, and
+submitted it unmodified -- multiple times across multiple days, always
+the same result:
 
 ```
 Result: FAILED
-{"kind": "VM_ERROR", "message": "invalid_contract runner malformed"}
-genvm_log: runner load -> runner: chain:0x0...:d:q805cc3mbb7k055ay5hek4sg80r2s85yyftpzrpq7g50hy1cc45g, size: 2839
+{"kind": "VM_ERROR", "message": "invalid_contract runner malformed"}  (later: "invalid_contract runner absent")
 ```
 
-Identical error, identical internal runner id, on GenLayer's own
-unmodified example, using GenLayer's own pinned hash. This is exactly
-`genlayerlabs/genlayer-studio#1757`'s own reported reproduction --
-independently reconfirmed here, plus the ~305-byte boundary that issue
-didn't isolate.
+This was treated as confirmation that the platform itself was broken.
+It should instead have been treated as a second data point needing its
+own investigation -- possibly the same leading-comment issue, possibly
+something else in that example file. Not re-tested with this session's
+fix; worth checking independently before citing it as still-broken.
 
-## This is NOT the ~52KB GenVM/Bradbury deploy-size wall
+### A real, paid deploy attempt also failed the same way (with the bug still present)
 
-A separate, unrelated constraint exists on Bradbury (a different
-network): an outer-encoded deploy payload limit around 52-54KB
-(`intrinsic gas too low` / `BlockPubdataLimitReached`), documented from
-prior GenLayer builds on this account. **That is not what's happening
-here.** The Bradbury wall is a real payload-encoding limit that only
-bites on large, complex contracts near that size; what's broken on
-Studio Dev right now is a runner-loading bug that bites at ~305 bytes --
-roughly 170x smaller than the Bradbury wall, on a completely different
-network, and confirmed by content-held-constant padding (§ above) to be
-about byte count alone, not encoding overhead or contract complexity.
-Do not conflate the two, and do not "fix" this by trying Bradbury-style
-size trimming -- there is no size Primacy could shrink to that would
-matter while this bug is live on Studio Dev.
+Before the fix, a real `deployContract()` call (not the free schema
+probe) was made against Studio Dev with a funded account:
 
-## Conclusion
+- Deploy tx: `0x2fffd4dc6dfec0f45040832d1b091a66ef577254d993306a8cbb85869a23354d`
+- Final status: `FINALIZED` / `FINISHED_WITH_ERROR`
+- Real fee consumed: `100000000000010352` wei (~0.1 GEN)
+- Leader receipt result (base64-decoded): `invalid_contract runner malformed`
+- The validator independently reached the same result and voted `agree`
 
-This is not Primacy's bundle, its header, its Depends hash, or its
-content. **Studio Dev's runner-loading path currently breaks for any
-contract over ~305 bytes**, which is far too small for any real,
-useful Intelligent Contract -- a single stored string field and one
-view method already exceeds it once padded past a few hundred bytes.
-Shrinking Primacy's contract cannot fix this; there is no meaningful
-contract that fits under the threshold.
+This confirmed the bug reproduced through a real paid transaction, not
+just the free probe -- correctly, since the bundle really did have the
+bug at that point. It was, again, wrongly read as proof the *platform*
+was broken rather than proof this project's *bundle* was.
 
-Matches, and sharpens, `genlayerlabs/genlayer-studio#1757` ("Studio Dev
-rejects its own v0.3 contract during schema extraction," filed
-2026-09-04, still open) -- that issue's own reproduction didn't isolate
-a size threshold, just that GenLayer's own example contract fails. This
-session's bisection adds the precise ~305-byte boundary as sharper
-evidence for that same issue.
+## Re-deploying
 
-## What this means for the product right now
-
-- **No contract is deployed.** `deploy/deployments.json` stays empty.
-- `VITE_CONTRACT_ADDRESS` stays unset in the frontend.
-- The product UI is **live and honestly empty**:
-  https://hourglass-insights.vercel.app -- fail-closed by construction
-  (no mock data anywhere, see that repo's `src/lib/primacy/client.ts` and
-  `AppShell.tsx`), showing a "Contract not deployed on Studio Next
-  (61997)" banner, zeroed stats, and every write disabled until a real
-  live contract exists.
-- **Do not spend GEN on Studio Dev again until studio-dev's own UI can
-  successfully deploy `genlayerlabs/genlayer-studio`'s own
-  `examples/contracts/llm_erc20.py` unmodified** -- that is the cleanest
-  bar for "the platform bug is fixed," verifiable for free via the
-  Studio Dev web UI's own deploy flow with no wallet/GEN required to
-  check. Re-run the free `getContractSchemaForCode` probe below first in
-  any case; if it still fails above ~305 bytes, nothing has changed.
-- For exercising the full contract lifecycle in the meantime without
-  touching the broken live network at all, see
-  `deploy/local_walkthrough.mjs` and its own header comment for running
-  create → bet → settle → claim against a local GenLayer Studio
-  instance.
-
-## Update 2026-09-24: re-checked, still broken, error signature changed
-
-Re-ran the free `gen_getContractSchemaForCode` probe against live Studio
-Dev. Three fresh tests, single well-spaced requests (the endpoint rate-
-limits this method to 30/min under an `x-ratelimit-bucket: standard`
-header, confirmed):
-
-| Payload | Size | Depends hash | Result |
-|---|---|---|---|
-| Minimal `Tiny` contract (one `u256` field, one view method) | 270 bytes | Primacy's pinned hash | **FAIL** -- `invalid_contract runner absent` |
-| Primacy's real bundle | 51,336 bytes (base64) | Primacy's pinned hash | **FAIL** -- `invalid_contract runner absent` |
-| `genlayerlabs/genlayer-studio`'s own `examples/contracts/llm_erc20.py`, fetched fresh from `main` today | 2,839 bytes | GenLayer's own pinned hash | **FAIL** -- `invalid_contract runner absent` |
-
-Two things changed since the original bisection above, and one thing
-didn't:
-
-- **The error message changed**: `invalid_contract runner malformed` ->
-  `invalid_contract runner absent`. This reads as the runner-loading
-  path itself now failing differently (a lookup miss, not a parse
-  failure on a too-large payload) -- a different symptom of the same
-  unresolved issue, not evidence of a partial fix.
-- **The size boundary no longer reproduces**: a 270-byte contract, well
-  under the previously-isolated 302-byte OK boundary, now fails too.
-  Nothing here suggests picking a smaller size would help.
-- **What didn't change: GenLayer's own unmodified example still fails**,
-  using GenLayer's own pinned hash, fetched fresh today. That is still
-  the cleanest, most conservative bar for "still broken," and it still
-  fails. The standing rule holds: **do not spend GEN on Studio Dev.**
-
-This is logged as a live update rather than a rewrite of the section
-above so the original bisection evidence stays intact and re-checkable
-on its own terms.
-
-## Re-checking this later
-
-```js
-const { createClient } = require("genlayer-js");
-const { studioDevnet } = require("genlayer-js/chains");
-const client = createClient({ chain: studioDevnet });
-const code = require("fs").readFileSync("contracts/build/Primacy.deploy.py", "utf-8");
-client.getContractSchemaForCode(code).then(
-  (s) => console.log("FIXED -- schema OK:", JSON.stringify(s).slice(0, 200)),
-  (e) => console.log("still broken:", e.message.slice(0, 200)),
-);
+```bash
+python contracts/build_bundle.py
+node deploy/deploy.mjs   # DEPLOYER_PRIVATE_KEY + TREASURY_ADDRESS in env
 ```
 
-If this ever prints "FIXED", re-run `contracts/build_bundle.py`, then
-`node deploy/deploy.mjs` with a funded account, and update this file
-with the real result.
+`deploy/deploy.mjs` had its own bug too: it read the deployed address
+from `tx.txDataDecoded.contractAddress`, which is consistently
+undefined on live Studio Dev responses. Fixed to read
+`tx.data.contract_address` (with the old path kept as a fallback), and
+to check `txExecutionResultName` explicitly before declaring success.
